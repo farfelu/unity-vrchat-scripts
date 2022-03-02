@@ -188,13 +188,21 @@ public class SetupFacetracking : EditorWindow
 
     private struct ClipSettings
     {
-        public string Blendshape { get; set; }
-        public float Value { get; set; }
+        public enum BlendshapeState
+        {
+            Off,
+            On
+        }
 
-        public ClipSettings(string blendshape, float value)
+        public string Blendshape { get; set; }
+        public BlendshapeState State { get; set; }
+
+        public float Value => State == BlendshapeState.On ? 100.0f : 0.0f;
+
+        public ClipSettings(string blendshape, BlendshapeState state)
         {
             Blendshape = blendshape;
-            Value = value;
+            State = state;
         }
     }
 
@@ -344,8 +352,8 @@ public class SetupFacetracking : EditorWindow
         // if single is set, then we animate from 0 to 1
         if (setup.Single != null)
         {
-            var clip0 = CreateClip("0", new ClipSettings(setup.Single, 0.0f));
-            var clip1 = CreateClip("1", new ClipSettings(setup.Single, 1.0f));
+            var clip0 = CreateClip("0", new ClipSettings(setup.Single, ClipSettings.BlendshapeState.Off));
+            var clip1 = CreateClip("1", new ClipSettings(setup.Single, ClipSettings.BlendshapeState.On));
 
             blendTree.AddChild(clip0, 0.0f);
             blendTree.AddChild(clip1, 1.0f);
@@ -361,7 +369,7 @@ public class SetupFacetracking : EditorWindow
             var neutralBlendshapes = properties
                 .Select(x => setup[x])
                 .Where(x => x != null)
-                .Select(x => new ClipSettings(x, 0.0f))
+                .Select(x => new ClipSettings(x, ClipSettings.BlendshapeState.Off))
                 .ToArray();
 
             var neutralClip = CreateClip("neutral", neutralBlendshapes);
@@ -371,7 +379,7 @@ public class SetupFacetracking : EditorWindow
             {
                 if (setup.Left != null)
                 {
-                    var leftClip = CreateClip("Left", new ClipSettings(setup.Left, 1.0f));
+                    var leftClip = CreateClip("Left", new ClipSettings(setup.Left, ClipSettings.BlendshapeState.On));
                     blendTree.AddChild(leftClip, -1.0f);
                 }
 
@@ -379,7 +387,7 @@ public class SetupFacetracking : EditorWindow
 
                 if (setup.Right != null)
                 {
-                    var rightClip = CreateClip("Right", new ClipSettings(setup.Right, 1.0f));
+                    var rightClip = CreateClip("Right", new ClipSettings(setup.Right, ClipSettings.BlendshapeState.On));
                     blendTree.AddChild(rightClip, 1.0f);
                 }
             }
@@ -392,7 +400,7 @@ public class SetupFacetracking : EditorWindow
                 {
                     if (setup[prop] != null)
                     {
-                        var clip = CreateClip(prop, new ClipSettings(setup[prop], 1.0f));
+                        var clip = CreateClip(prop, new ClipSettings(setup[prop], ClipSettings.BlendshapeState.On));
                         blendTree.AddChild(clip, setup.Vectorize(prop));
                     }
                 }
@@ -423,7 +431,7 @@ public class SetupFacetracking : EditorWindow
                 return null;
             }
 
-            blendShapes[i] = new ClipSettings(blendShape, blendshapes[i].Value);
+            blendShapes[i] = new ClipSettings(blendShape, blendshapes[i].State);
         }
 
         // if the file already exists, load it so we don't recreate the UID if it is already used somewhere
