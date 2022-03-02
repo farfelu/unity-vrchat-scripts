@@ -301,7 +301,11 @@ public class CreateItemToggle : EditorWindow
 
         var fullPath = string.Join("/", pathParts);
 
-        clip.SetCurve(fullPath, typeof(GameObject), "m_IsActive", AnimationCurve.Linear(0.0f, floatState, 1.0f / 60.0f, floatState));
+        var curveBinding = new EditorCurveBinding() { path = fullPath, type = typeof(GameObject), propertyName = "m_IsActive" };
+        var curve = AnimationCurve.Linear(0.0f, floatState, 1.0f / 60.0f, floatState);
+
+        clip.SetCurve(curveBinding.path, curveBinding.type, curveBinding.propertyName, curve);
+        AnimationUtility.SetEditorCurve(clip, curveBinding, curve);
 
         if (!System.IO.File.Exists(filePath))
         {

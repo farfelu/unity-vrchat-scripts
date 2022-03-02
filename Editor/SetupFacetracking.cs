@@ -432,7 +432,11 @@ public class SetupFacetracking : EditorWindow
 
         foreach (var blendShape in blendShapes)
         {
-            clip.SetCurve(Body.name, typeof(SkinnedMeshRenderer), "blendShape." + blendShape.Blendshape, AnimationCurve.Linear(0.0f, blendShape.Value, 1.0f / 60, blendShape.Value));
+            var curveBinding = new EditorCurveBinding() { path = Body.name, type = typeof(SkinnedMeshRenderer), propertyName = "blendShape." + blendShape.Blendshape };
+            var curve = AnimationCurve.Linear(0.0f, blendShape.Value, 1.0f / 60, blendShape.Value);
+
+            clip.SetCurve(curveBinding.path, curveBinding.type, curveBinding.propertyName, curve);
+            AnimationUtility.SetEditorCurve(clip, curveBinding, curve);
         }
 
         if (!System.IO.File.Exists(filePath))
