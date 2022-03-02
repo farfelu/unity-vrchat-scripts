@@ -407,7 +407,7 @@ public class SetupFacetracking : EditorWindow
         var path = "Assets/FaceTracking/Animations/";
         System.IO.Directory.CreateDirectory(path);
 
-        var name = string.Join("-", blendshapes.Select(x => x.Blendshape));
+        var name = "FT_" + string.Join("-", blendshapes.Select(x => x.Blendshape));
         var filePath = path + name + "_" + position + ".anim";
 
         // try mapping given blendshapes to actual blendshapes on the body
