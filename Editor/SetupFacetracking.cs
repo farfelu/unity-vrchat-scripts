@@ -78,6 +78,9 @@ public class SetupFacetracking : EditorWindow
     private SkinnedMeshRenderer Body { get; set; }
     private AnimatorController Controller { get; set; }
     private VRCExpressionParameters Parameters { get; set; }
+    private bool AddToggle { get; set; }
+
+    private const string ToggleName = "FT_Enabled";
 
     private void OnGUI()
     {
@@ -114,11 +117,28 @@ public class SetupFacetracking : EditorWindow
         Parameters = (VRCExpressionParameters)EditorGUILayout.ObjectField("Parameters", Parameters, typeof(VRCExpressionParameters), false);
         Controller = (AnimatorController)EditorGUILayout.ObjectField("FX controller", Controller, typeof(AnimatorController), false);
 
+        GUI.enabled = true;
+
+
+        EditorGUILayout.HelpBox("The toggle \"" + ToggleName + "\" will always be added to the controller and can be optionally added to the menu to toggle it ingame\nTo disable face tracking set the \"" + ToggleName + "\" parameter to false in the controller", MessageType.None);
+
+        EditorGUILayout.Space();
+
+        AddToggle = (bool)EditorGUILayout.ToggleLeft("Add toggle to menu parameters", AddToggle);
+
+        if (AddToggle)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.HelpBox("Toggle has to be added to the menu manually.\nAdd a toggle for the \"" + ToggleName + "\" parameter to the menu", MessageType.Warning);
+        }
+
         GUI.enabled = Avatar != null
             && Body != null
             && Controller != null
             && Parameters != null
             && Body.GetComponent<SkinnedMeshRenderer>() != null;
+
+        EditorGUILayout.Space();
 
         if (GUILayout.Button("Set up facetracking"))
         {
@@ -239,6 +259,17 @@ public class SetupFacetracking : EditorWindow
             });
         }
 
+        if (AddToggle && !list.Any(x => x.name == ToggleName))
+        {
+            list.Add(new VRCExpressionParameters.Parameter()
+            {
+                name = ToggleName,
+                saved = true,
+                defaultValue = 1.0f,
+                valueType = VRCExpressionParameters.ValueType.Bool
+            });
+        }
+
         Parameters.parameters = list.ToArray();
 
         EditorUtility.SetDirty(Parameters);
@@ -257,6 +288,16 @@ public class SetupFacetracking : EditorWindow
                 }
             }
 
+            // add toggle parameter, default to true
+            if (!Controller.parameters.Any(x => x.name == ToggleName))
+            {
+                Controller.AddParameter(new AnimatorControllerParameter() {
+                    name = ToggleName,
+                    type = AnimatorControllerParameterType.Bool,
+                    defaultBool = true
+                });
+            }
+
             // used for the animation filename
             var parameterNames = string.Join("-", setup.Parameters);
             var layerName = "FT_" + parameterNames;
@@ -271,19 +312,38 @@ public class SetupFacetracking : EditorWindow
                     // removing a layer does NOT clean up the referenced blendtrees/states in it
                     foreach (var state in layer.stateMachine.states.ToArray())
                     {
-                        var bt = state.state.motion as BlendTree;
-                        while (bt != null && bt.children.Length > 0)
+                        // remove animationsclips
+                        var motion = state.state.motion;
+                        if (motion is BlendTree)
                         {
-                            bt.RemoveChild(0);
+                            var bt = motion as BlendTree;
+                            while (bt.children.Length > 0)
+                            {
+                                bt.RemoveChild(0);
+                            }
                         }
-                        AssetDatabase.RemoveObjectFromAsset(bt);
+
+                        // remove transitions
+                        foreach (var transition in state.state.transitions)
+                        {
+                            AssetDatabase.RemoveObjectFromAsset(transition);
+                            state.state.RemoveTransition(transition);
+                        }
+
+                        if (motion != null)
+                        {
+                            AssetDatabase.RemoveObjectFromAsset(motion);
+                        }
+
                         state.state.motion = null;
                         layer.stateMachine.RemoveState(state.state);
                     }
+
                     if (layer.stateMachine.defaultState != null)
                     {
                         AssetDatabase.RemoveObjectFromAsset(layer.stateMachine.defaultState);
                     }
+
                     layer.stateMachine.defaultState = null;
                     layer.stateMachine.states = null;
                     if (layer.stateMachine != null)
@@ -307,24 +367,47 @@ public class SetupFacetracking : EditorWindow
 
             Controller.AddLayer(newLayer);
 
+            // add toggle state to check if face tracking is on or off
+            var toggleState = newLayer.stateMachine.AddState("disabled", new Vector3(280.0f, 120.0f));
+            toggleState.hideFlags = HideFlags.HideInHierarchy;
+            toggleState.writeDefaultValues = true;
+
             // add a new blendtree as default state
-            var defaultState = newLayer.stateMachine.AddState(parameterNames + " Blendtree", new Vector3(280.0f, 120.0f));
-            defaultState.hideFlags = HideFlags.HideInHierarchy;
-            defaultState.writeDefaultValues = true;
+            var blendtreeState = newLayer.stateMachine.AddState("enabled Blendtree", new Vector3(280.0f, 250.0f));
+            blendtreeState.hideFlags = HideFlags.HideInHierarchy;
+            blendtreeState.writeDefaultValues = true;
+
             var blendTree = CreateBlendTree(setup);
             if (blendTree == null)
             {
                 return;
             }
-            defaultState.motion = blendTree;
+            blendtreeState.motion = blendTree;
 
+            // add transition with toggle condition between toggle state and blendtree state
+            var onTransition = toggleState.AddTransition(blendtreeState, false);
+            onTransition.hideFlags = HideFlags.HideInHierarchy;
+            onTransition.hasExitTime = false;
+            onTransition.duration = 0.0f;
+            onTransition.AddCondition(AnimatorConditionMode.If, 1.0f, ToggleName);
+
+            var offTransition = blendtreeState.AddTransition(toggleState, false);
+            offTransition.hideFlags = HideFlags.HideInHierarchy;
+            offTransition.hasExitTime = false;
+            offTransition.duration = 0.0f;
+            offTransition.AddCondition(AnimatorConditionMode.IfNot, 1.0f, ToggleName);
+
+            EditorUtility.SetDirty(toggleState);
             EditorUtility.SetDirty(blendTree);
             EditorUtility.SetDirty(newLayer.stateMachine);
-            EditorUtility.SetDirty(defaultState);
+            EditorUtility.SetDirty(blendtreeState);
 
             // make unity actually save it
             AssetDatabase.AddObjectToAsset(blendTree, Controller);
-            AssetDatabase.AddObjectToAsset(defaultState, Controller);
+            AssetDatabase.AddObjectToAsset(toggleState, Controller);
+            AssetDatabase.AddObjectToAsset(blendtreeState, Controller);
+            AssetDatabase.AddObjectToAsset(onTransition, Controller);
+            AssetDatabase.AddObjectToAsset(offTransition, Controller);
             AssetDatabase.AddObjectToAsset(newLayer.stateMachine, Controller);
         }
 
