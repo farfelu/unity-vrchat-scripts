@@ -10,59 +10,59 @@ public class SetupFacetracking : EditorWindow
     // preset for the Rexouium
     private static readonly TrackingSetup[] LayerSetup = new TrackingSetup[] {
         new TrackingSetup("JawOpen") {
-            Single = "MouthOpen"
+            Single = new BW(0.75f, "MouthOpen")
         },
         new TrackingSetup("JawX") {
-            Left = "JawLeft",
-            Right = "JawRight"
+            Left = new BW("JawLeft"),
+            Right = new BW("JawRight")
         },
         new TrackingSetup("TongueX", "TongueY") {
-            Top = "TongueUp",
-            TopRight = "TongueUpRight",
-            Right = "TongueRight",
-            BottomRight = "TongueDownRight",
-            Bottom = "TongueDown",
-            BottomLeft = "TongueDownLeft",
-            Left = "TongueLeft",
-            TopLeft = "TongueUpLeft"
+            Top = new BW(1.25f, "TongueUp"),
+            TopRight = new BW(1.25f, "TongueUpRight"),
+            Right = new BW(1.25f, "TongueRight"),
+            BottomRight = new BW(1.25f, "TongueDownRight"),
+            Bottom = new BW(1.25f, "TongueDown"),
+            BottomLeft = new BW(1.25f, "TongueDownLeft"),
+            Left = new BW(1.25f, "TongueLeft"),
+            TopLeft = new BW(1.25f, "TongueUpLeft")
         },
         new TrackingSetup("TongueLongStep1") {
-            Single = "TongueExtend"
+            Single = new BW(2.0f, "TongueExtend")
         },
         new TrackingSetup("MouthUpperUpLeftUpperInside") {
-            Left = "UpperLipIn",
-            Right = "LipCornerTopUp_L"
+            Left = new BW("UpperLipIn"),
+            Right = new BW(0.5f, "LipCornerTopUp_L")
         },
         new TrackingSetup("MouthUpperUpRightUpperInside") {
-            Left = "UpperLipIn",
-            Right = "UpperLipRight"
+            Left = new BW("UpperLipIn"),
+            Right = new BW(0.5f, "LipCornerTopUp_R")
         },
         new TrackingSetup("MouthUpper") {
-            Left = "UpperLipLeft",
-            Right = "UpperLipRight"
+            Left = new BW("UpperLipLeft"),
+            Right = new BW("UpperLipRight")
         },
         new TrackingSetup("MouthLower") {
-            Left = "LowerLipLeft",
-            Right = "LowerLipRight"
+            Left = new BW("LowerLipLeft"),
+            Right = new BW("LowerLipRight")
         },
         new TrackingSetup("MouthPout") {
-            Single = "Pout_Pucker"
+            Single = new BW(1.25f, "Pout_Pucker")
         },
         new TrackingSetup("SmileSadRight") {
-            Left = "Grin_R",
-            Right = "Frown_R"
+            Left = new BW("Frown_R"),
+            Right = new BW(0.5f, "Grin_R")
         },
         new TrackingSetup("SmileSadLeft") {
-            Left = "Grin_L",
-            Right = "Frown_L"
+            Left = new BW("Frown_L"),
+            Right = new BW(0.5f, "Grin_L")
         },
         new TrackingSetup("PuffSuckRight") {
-            Left = "CheeksIn_R",
-            Right = "CheekPuff_R"
+            Left = new BW("CheeksIn_R"),
+            Right = new BW("CheekPuff_R")
         },
         new TrackingSetup("PuffSuckLeft") {
-            Left = "CheeksIn_L",
-            Right = "CheekPuff_L"
+            Left = new BW("CheeksIn_L"),
+            Right = new BW("CheekPuff_L")
         }
     };
 
@@ -152,42 +152,61 @@ public class SetupFacetracking : EditorWindow
         }
     }
 
+    public struct BW // blendshape weight
+    {
+        public string[] Blendshapes { get; set; }
+        public float Weight { get; set; }
+
+        public BW(params string[] blendshapes)
+        {
+            Blendshapes = blendshapes;
+            Weight = 1.0f;
+        }
+
+        public BW(float weight, params string[] blendshapes)
+        {
+            Weight = weight;
+            Blendshapes = blendshapes;
+        }
+    }
+
     private struct TrackingSetup
     {
+
         public string[] Parameters { get; set; }
 
-        public string Single { get; set; }
+        public BW? Single { get; set; }
 
-        public string Top { get; set; }
-        public string TopRight { get; set; }
-        public string Right { get; set; }
-        public string BottomRight { get; set; }
-        public string Bottom { get; set; }
-        public string BottomLeft { get; set; }
-        public string Left { get; set; }
-        public string TopLeft { get; set; }
+        public BW? Top { get; set; }
+        public BW? TopRight { get; set; }
+        public BW? Right { get; set; }
+        public BW? BottomRight { get; set; }
+        public BW? Bottom { get; set; }
+        public BW? BottomLeft { get; set; }
+        public BW? Left { get; set; }
+        public BW? TopLeft { get; set; }
 
         // probably better with attributes, but I don't know Unity
-        public Vector2 Vectorize(string property)
+        public Vector2 Vectorize(string property, float weight)
         {
             switch (property)
             {
                 case "Top":
-                    return new Vector2(0.0f, 1.0f);
+                    return new Vector2(0.0f, 1.0f / weight);
                 case "TopRight":
-                    return new Vector2(1.0f, 1.0f);
+                    return new Vector2(1.0f / weight, 1.0f / weight);
                 case "Right":
-                    return new Vector2(1.0f, 0.0f);
+                    return new Vector2(1.0f / weight, 0.0f);
                 case "BottomRight":
-                    return new Vector2(1.0f, -1.0f);
+                    return new Vector2(1.0f / weight, -1.0f / weight);
                 case "Bottom":
-                    return new Vector2(0.0f, -1.0f);
+                    return new Vector2(0.0f, -1.0f / weight);
                 case "BottomLeft":
-                    return new Vector2(-1.0f, -1.0f);
+                    return new Vector2(-1.0f / weight, -1.0f / weight);
                 case "Left":
-                    return new Vector2(-1.0f, 0.0f);
+                    return new Vector2(-1.0f / weight, 0.0f);
                 case "TopLeft":
-                    return new Vector2(-1.0f, 1.0f);
+                    return new Vector2(-1.0f / weight, 1.0f / weight);
                 default:
                     return Vector2.zero;
             }
@@ -200,9 +219,9 @@ public class SetupFacetracking : EditorWindow
 
         // just to make it easier later
         // has no fail checks
-        public string this[string property]
+        public BW? this[string property]
         {
-            get { return (string)GetType().GetProperty(property).GetValue(this); }
+            get { return (BW?)GetType().GetProperty(property).GetValue(this); }
         }
     }
 
@@ -214,14 +233,19 @@ public class SetupFacetracking : EditorWindow
             On
         }
 
-        public string Blendshape { get; set; }
+        public string[] Blendshapes { get; set; }
         public BlendshapeState State { get; set; }
 
         public float Value => State == BlendshapeState.On ? 100.0f : 0.0f;
 
-        public ClipSettings(string blendshape, BlendshapeState state)
+        public ClipSettings(string blendshape, BlendshapeState state) : this(new[] { blendshape }, state)
         {
-            Blendshape = blendshape;
+
+        }
+
+        public ClipSettings(string[] blendshapes, BlendshapeState state)
+        {
+            Blendshapes = blendshapes;
             State = state;
         }
     }
@@ -373,15 +397,15 @@ public class SetupFacetracking : EditorWindow
             toggleState.writeDefaultValues = true;
 
             // add a new blendtree as default state
-            var blendtreeState = newLayer.stateMachine.AddState("enabled Blendtree", new Vector3(280.0f, 250.0f));
-            blendtreeState.hideFlags = HideFlags.HideInHierarchy;
-            blendtreeState.writeDefaultValues = true;
-
             var blendTree = CreateBlendTree(setup);
-            if (blendTree == null)
+            if (blendTree == null) 
             {
                 return;
             }
+
+            var blendtreeState = newLayer.stateMachine.AddState(blendTree.name, new Vector3(280.0f, 250.0f));
+            blendtreeState.hideFlags = HideFlags.HideInHierarchy;
+            blendtreeState.writeDefaultValues = true;
             blendtreeState.motion = blendTree;
 
             // add transition with toggle condition between toggle state and blendtree state
@@ -435,11 +459,11 @@ public class SetupFacetracking : EditorWindow
         // if single is set, then we animate from 0 to 1
         if (setup.Single != null)
         {
-            var clip0 = CreateClip("0", new ClipSettings(setup.Single, ClipSettings.BlendshapeState.Off));
-            var clip1 = CreateClip("1", new ClipSettings(setup.Single, ClipSettings.BlendshapeState.On));
+            var clip0 = CreateClip("0", new ClipSettings(setup.Single.Value.Blendshapes, ClipSettings.BlendshapeState.Off));
+            var clip1 = CreateClip("1", new ClipSettings(setup.Single.Value.Blendshapes, ClipSettings.BlendshapeState.On));
 
             blendTree.AddChild(clip0, 0.0f);
-            blendTree.AddChild(clip1, 1.0f);
+            blendTree.AddChild(clip1, 1.0f / setup.Single.Value.Weight);
         }
         else // more than one we place them wherever they need to be
         {
@@ -452,7 +476,7 @@ public class SetupFacetracking : EditorWindow
             var neutralBlendshapes = properties
                 .Select(x => setup[x])
                 .Where(x => x != null)
-                .Select(x => new ClipSettings(x, ClipSettings.BlendshapeState.Off))
+                .Select(x => new ClipSettings(x.Value.Blendshapes, ClipSettings.BlendshapeState.Off))
                 .ToArray();
 
             var neutralClip = CreateClip("neutral", neutralBlendshapes);
@@ -462,16 +486,16 @@ public class SetupFacetracking : EditorWindow
             {
                 if (setup.Left != null)
                 {
-                    var leftClip = CreateClip("Left", new ClipSettings(setup.Left, ClipSettings.BlendshapeState.On));
-                    blendTree.AddChild(leftClip, -1.0f);
+                    var leftClip = CreateClip("Left", new ClipSettings(setup.Left.Value.Blendshapes, ClipSettings.BlendshapeState.On));
+                    blendTree.AddChild(leftClip, -1.0f / setup.Left.Value.Weight);
                 }
 
                 blendTree.AddChild(neutralClip, 0.0f);
 
                 if (setup.Right != null)
                 {
-                    var rightClip = CreateClip("Right", new ClipSettings(setup.Right, ClipSettings.BlendshapeState.On));
-                    blendTree.AddChild(rightClip, 1.0f);
+                    var rightClip = CreateClip("Right", new ClipSettings(setup.Right.Value.Blendshapes, ClipSettings.BlendshapeState.On));
+                    blendTree.AddChild(rightClip, 1.0f / setup.Right.Value.Weight);
                 }
             }
             else
@@ -483,8 +507,8 @@ public class SetupFacetracking : EditorWindow
                 {
                     if (setup[prop] != null)
                     {
-                        var clip = CreateClip(prop, new ClipSettings(setup[prop], ClipSettings.BlendshapeState.On));
-                        blendTree.AddChild(clip, setup.Vectorize(prop));
+                        var clip = CreateClip(prop, new ClipSettings(setup[prop].Value.Blendshapes, ClipSettings.BlendshapeState.On));
+                        blendTree.AddChild(clip, setup.Vectorize(prop, setup[prop].Value.Weight));
                     }
                 }
             }
@@ -498,36 +522,47 @@ public class SetupFacetracking : EditorWindow
         var path = "Assets/FaceTracking/Animations/";
         System.IO.Directory.CreateDirectory(path);
 
-        var name = "FT_" + string.Join("-", blendshapes.Select(x => x.Blendshape));
+        var name = "FT_" + string.Join("-", blendshapes.SelectMany(x => x.Blendshapes));
         var filePath = path + name + "_" + position + ".anim";
 
         // try mapping given blendshapes to actual blendshapes on the body
-        var blendShapes = new ClipSettings[blendshapes.Length];
+        var meshBlendshapes = new ClipSettings[blendshapes.Length];
 
         for (var i = 0; i < blendshapes.Length; i++)
         {
-            var blendShape = SearchBlendshape(Body, blendshapes[i].Blendshape);
-
-            if (blendShape == null)
+            var blendshape = blendshapes[i];
+            var foundBlendshapes = new string[blendshape.Blendshapes.Length];
+            for (var j = 0; j < blendshapes[i].Blendshapes.Length; j++)
             {
-                EditorUtility.DisplayDialog("Error setting up face tracking", "Could not find Blendshape \"" + blendshapes[i].Blendshape + "\" on \"" + Body.name + "\"", "Ok");
-                return null;
+                var targetBlendshape = blendshape.Blendshapes[j];
+                var foundBlendshape = SearchBlendshape(Body, targetBlendshape);
+
+                if (foundBlendshape == null)
+                {
+                    EditorUtility.DisplayDialog("Error setting up face tracking", "Could not find Blendshape \"" + targetBlendshape + "\" on \"" + Body.name + "\"", "Ok");
+                    return null;
+                }
+
+                foundBlendshapes[j] = foundBlendshape;
             }
 
-            blendShapes[i] = new ClipSettings(blendShape, blendshapes[i].State);
+            meshBlendshapes[i] = new ClipSettings(foundBlendshapes, blendshape.State);
         }
 
         // if the file already exists, load it so we don't recreate the UID if it is already used somewhere
         var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(filePath) ?? new AnimationClip();
         clip.ClearCurves();
 
-        foreach (var blendShape in blendShapes)
+        foreach (var blendShape in meshBlendshapes)
         {
-            var curveBinding = new EditorCurveBinding() { path = Body.name, type = typeof(SkinnedMeshRenderer), propertyName = "blendShape." + blendShape.Blendshape };
-            var curve = AnimationCurve.Linear(0.0f, blendShape.Value, 1.0f / 60, blendShape.Value);
+            foreach (var blendShapeKey in blendShape.Blendshapes)
+            {
+                var curveBinding = new EditorCurveBinding() { path = Body.name, type = typeof(SkinnedMeshRenderer), propertyName = "blendShape." + blendShapeKey };
+                var curve = AnimationCurve.Linear(0.0f, blendShape.Value, 1.0f / 60, blendShape.Value);
 
-            clip.SetCurve(curveBinding.path, curveBinding.type, curveBinding.propertyName, curve);
-            AnimationUtility.SetEditorCurve(clip, curveBinding, curve);
+                clip.SetCurve(curveBinding.path, curveBinding.type, curveBinding.propertyName, curve);
+                AnimationUtility.SetEditorCurve(clip, curveBinding, curve);
+            }
         }
 
         if (!System.IO.File.Exists(filePath))
