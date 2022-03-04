@@ -182,7 +182,10 @@ public class CreateItemToggle : EditorWindow
                 // removing a layer does NOT clean up the referenced blendtrees/states in it
                 foreach (var state in layer.stateMachine.states.ToArray())
                 {
-                    AssetDatabase.RemoveObjectFromAsset(state.state.motion);
+                    if (state.state.motion != null)
+                    {
+                        AssetDatabase.RemoveObjectFromAsset(state.state.motion);
+                    }
                     state.state.motion = null;
                     layer.stateMachine.RemoveState(state.state);
                 }
