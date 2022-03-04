@@ -8,61 +8,65 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 public class SetupFacetracking : EditorWindow
 {
     // preset for the Rexouium
-    private static readonly TrackingSetup[] LayerSetup = new TrackingSetup[] {
-        new TrackingSetup("JawOpen") {
-            Single = new BW(0.75f, "MouthOpen")
-        },
-        new TrackingSetup("JawX") {
-            Left = new BW("JawLeft"),
-            Right = new BW("JawRight")
-        },
-        new TrackingSetup("TongueX", "TongueY") {
-            Top = new BW(1.25f, "TongueUp"),
-            TopRight = new BW(1.25f, "TongueUpRight"),
-            Right = new BW(1.25f, "TongueRight"),
-            BottomRight = new BW(1.25f, "TongueDownRight"),
-            Bottom = new BW(1.25f, "TongueDown"),
-            BottomLeft = new BW(1.25f, "TongueDownLeft"),
-            Left = new BW(1.25f, "TongueLeft"),
-            TopLeft = new BW(1.25f, "TongueUpLeft")
-        },
-        new TrackingSetup("TongueLongStep1") {
-            Single = new BW(2.0f, "TongueExtend")
-        },
-        new TrackingSetup("MouthUpperUpLeftUpperInside") {
-            Left = new BW("UpperLipIn"),
-            Right = new BW(0.5f, "LipCornerTopUp_L")
-        },
-        new TrackingSetup("MouthUpperUpRightUpperInside") {
-            Left = new BW("UpperLipIn"),
-            Right = new BW(0.5f, "LipCornerTopUp_R")
-        },
-        new TrackingSetup("MouthUpper") {
-            Left = new BW("UpperLipLeft"),
-            Right = new BW("UpperLipRight")
-        },
-        new TrackingSetup("MouthLower") {
-            Left = new BW("LowerLipLeft"),
-            Right = new BW("LowerLipRight")
-        },
-        new TrackingSetup("MouthPout") {
-            Single = new BW(1.25f, "Pout_Pucker")
-        },
-        new TrackingSetup("SmileSadRight") {
-            Left = new BW("Frown_R"),
-            Right = new BW(0.5f, "Grin_R")
-        },
-        new TrackingSetup("SmileSadLeft") {
-            Left = new BW("Frown_L"),
-            Right = new BW(0.5f, "Grin_L")
-        },
-        new TrackingSetup("PuffSuckRight") {
-            Left = new BW("CheeksIn_R"),
-            Right = new BW("CheekPuff_R")
-        },
-        new TrackingSetup("PuffSuckLeft") {
-            Left = new BW("CheeksIn_L"),
-            Right = new BW("CheekPuff_L")
+    private static readonly TrackingSetup[] Setups = new TrackingSetup[] {
+        new TrackingSetup("Rexouium") {
+            Options = new TrackingOption[] {
+                new TrackingOption("JawOpen") {
+                    Single = new BW("MouthOpen")
+                },
+                new TrackingOption("JawX") {
+                    Left = new BW("JawLeft"),
+                    Right = new BW("JawRight")
+                },
+                new TrackingOption("TongueX", "TongueY") {
+                    Top = new BW(1.25f, "TongueUp"),
+                    TopRight = new BW(1.25f, "TongueUpRight"),
+                    Right = new BW(1.25f, "TongueRight"),
+                    BottomRight = new BW(1.25f, "TongueDownRight"),
+                    Bottom = new BW(1.25f, "TongueDown"),
+                    BottomLeft = new BW(1.25f, "TongueDownLeft"),
+                    Left = new BW(1.25f, "TongueLeft"),
+                    TopLeft = new BW(1.25f, "TongueUpLeft")
+                },
+                new TrackingOption("TongueLongStep1") {
+                    Single = new BW(2.0f, "TongueExtend")
+                },
+                new TrackingOption("MouthUpperUpLeftUpperInside") {
+                    Left = new BW("UpperLipIn"),
+                    Right = new BW(0.5f, "LipCornerTopUp_L")
+                },
+                new TrackingOption("MouthUpperUpRightUpperInside") {
+                    Left = new BW("UpperLipIn"),
+                    Right = new BW(0.5f, "LipCornerTopUp_R")
+                },
+                new TrackingOption("MouthUpper") {
+                    Left = new BW("UpperLipLeft"),
+                    Right = new BW("UpperLipRight")
+                },
+                new TrackingOption("MouthLower") {
+                    Left = new BW("LowerLipLeft"),
+                    Right = new BW("LowerLipRight")
+                },
+                new TrackingOption("MouthPout") {
+                    Single = new BW(1.25f, "Pout_Pucker")
+                },
+                new TrackingOption("SmileSadRight") {
+                    Left = new BW("Frown_R"),
+                    Right = new BW(0.5f, "Grin_R")
+                },
+                new TrackingOption("SmileSadLeft") {
+                    Left = new BW("Frown_L"),
+                    Right = new BW(0.5f, "Grin_L")
+                },
+                new TrackingOption("PuffSuckRight") {
+                    Left = new BW("CheeksIn_R"),
+                    Right = new BW("CheekPuff_R")
+                },
+                new TrackingOption("PuffSuckLeft") {
+                    Left = new BW("CheeksIn_L"),
+                    Right = new BW("CheekPuff_L")
+                }
+            }
         }
     };
 
@@ -74,6 +78,10 @@ public class SetupFacetracking : EditorWindow
         window.Show();
     }
 
+    private static readonly string[] SetupNames = Setups.Select(x => x.Name).ToArray();
+    private int SetupIndex { get; set; } = 0;
+    private TrackingOption[] SelectedOptions => Setups[SetupIndex].Options;
+
     private GameObject Avatar { get; set; }
     private SkinnedMeshRenderer Body { get; set; }
     private AnimatorController Controller { get; set; }
@@ -84,6 +92,10 @@ public class SetupFacetracking : EditorWindow
 
     private void OnGUI()
     {
+        SetupIndex = EditorGUILayout.Popup("Setup template", SetupIndex, SetupNames);
+
+        EditorGUILayout.Space();
+
         var newAvatar = (GameObject)EditorGUILayout.ObjectField("Avatar", Avatar, typeof(GameObject), true);
 
         // just reset the body mesh and controller if the selection changes
@@ -170,9 +182,20 @@ public class SetupFacetracking : EditorWindow
         }
     }
 
-    private struct TrackingSetup
+    private class TrackingSetup
     {
+        public string Name { get; set; }
+        public TrackingOption[] Options { get; set; }
 
+        public TrackingSetup(string name)
+        {
+            Name = name;
+            Options = null;
+        }
+    }
+
+    private struct TrackingOption
+    {
         public string[] Parameters { get; set; }
 
         public BW? Single { get; set; }
@@ -212,7 +235,7 @@ public class SetupFacetracking : EditorWindow
             }
         }
 
-        public TrackingSetup(params string[] parameters) : this()
+        public TrackingOption(params string[] parameters) : this()
         {
             Parameters = parameters;
         }
@@ -262,7 +285,7 @@ public class SetupFacetracking : EditorWindow
     private void SetupParameters()
     {
         // get all the parameters we need to add
-        var parameters = LayerSetup.SelectMany(x => x.Parameters);
+        var parameters = SelectedOptions.SelectMany(x => x.Parameters);
 
         // easier to just convert to a generic than handling an array
         var list = Parameters.parameters.ToList();
@@ -301,10 +324,10 @@ public class SetupFacetracking : EditorWindow
 
     private void SetupController()
     {
-        foreach (var setup in LayerSetup)
+        foreach (var option in SelectedOptions)
         {
             // add layer Parameters
-            foreach (var param in setup.Parameters)
+            foreach (var param in option.Parameters)
             {
                 if (!Controller.parameters.Any(x => x.name == param))
                 {
@@ -323,7 +346,7 @@ public class SetupFacetracking : EditorWindow
             }
 
             // used for the animation filename
-            var parameterNames = string.Join("-", setup.Parameters);
+            var parameterNames = string.Join("-", option.Parameters);
             var layerName = "FT_" + parameterNames;
 
             // remove layer if it already exists
@@ -397,7 +420,7 @@ public class SetupFacetracking : EditorWindow
             toggleState.writeDefaultValues = true;
 
             // add a new blendtree as default state
-            var blendTree = CreateBlendTree(setup);
+            var blendTree = CreateBlendTree(option);
             if (blendTree == null) 
             {
                 return;
@@ -438,7 +461,7 @@ public class SetupFacetracking : EditorWindow
         EditorUtility.SetDirty(Controller);
     }
 
-    private BlendTree CreateBlendTree(TrackingSetup setup)
+    private BlendTree CreateBlendTree(TrackingOption setup)
     {
         var blendTree = new BlendTree()
         {
