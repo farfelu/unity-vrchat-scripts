@@ -14,11 +14,13 @@ public class AddParameter : EditorWindow
 
     GameObject armature = null;
     GameObject clothes = null;
+    bool allowHierarchyMismatch = false;
 
     private void OnGUI()
     {
         armature = (GameObject)EditorGUILayout.ObjectField("Avatar Armature", armature, typeof(GameObject), true);
         clothes = (GameObject)EditorGUILayout.ObjectField("Clothes Armature", clothes, typeof(GameObject), true);
+        allowHierarchyMismatch = (bool)EditorGUILayout.Toggle("Allow hierarchy mismatch", allowHierarchyMismatch);
 
         GUI.enabled = armature != null && clothes != null;
 
@@ -28,7 +30,10 @@ public class AddParameter : EditorWindow
             Undo.SetCurrentGroupName("Apply Clothes");
             var undoID = Undo.GetCurrentGroup();
 
-            ApplyBones(clothes.transform, armature.transform);
+            foreach (Transform clothBones in clothes.transform)
+            {
+                ApplyBones(clothBones, armature.transform);
+            }
 
             Undo.CollapseUndoOperations(undoID);
         }
@@ -36,30 +41,43 @@ public class AddParameter : EditorWindow
 
     private void ApplyBones(Transform clothes, Transform armature)
     {
-        foreach (Transform clothesChild in clothes)
-        {
-            var boneName = clothesChild.name;
+        var boneName = clothes.name;
 
+        var matched = false;
+        foreach (Transform armatureChild in armature)
+        {
+            if (boneName.Contains(armatureChild.name))
+            {
+                matched = true;
+
+                CreateParentConstraint(clothes, armatureChild);
+                foreach (Transform clothesChild in clothes)
+                {
+                    ApplyBones(clothesChild, armatureChild);
+                }
+                break;
+            }
+        }
+
+        // if none matched, try looping through all children instead if enabled
+        if (allowHierarchyMismatch && !matched)
+        {
             foreach (Transform armatureChild in armature)
             {
-                if (boneName.EndsWith(armatureChild.name))
-                {
-                    CreateParentConstraint(clothesChild, armatureChild);
-                    ApplyBones(clothesChild, armatureChild);
-                    break;
-                }
+                ApplyBones(clothes, armatureChild);
             }
         }
     }
 
     private void CreateParentConstraint(Transform obj, Transform target)
     {
-        if (obj.gameObject.GetComponent<ParentConstraint>() != null)
+        var parentConstraint = obj.gameObject.GetComponent<ParentConstraint>();
+        if (parentConstraint != null)
         {
-            return;
+            Undo.DestroyObjectImmediate(parentConstraint);
         }
 
-        var parentConstraint = Undo.AddComponent<ParentConstraint>(obj.gameObject);
+        parentConstraint = Undo.AddComponent<ParentConstraint>(obj.gameObject);
         parentConstraint.AddSource(new ConstraintSource()
         {
             sourceTransform = target,
