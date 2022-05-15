@@ -78,7 +78,7 @@ public class SetupFacetracking : EditorWindow
         window.Show();
     }
 
-    private static readonly string[] SetupNames = Setups.Select(x => x.Name).ToArray();
+    private static readonly string[] SetupNames = Setups.Select(x => x.Name + " (" + x.Options.Length * 8 + " bits)").ToArray();
     private int SetupIndex { get; set; } = 0;
     private TrackingOption[] SelectedOptions => Setups[SetupIndex].Options;
 
@@ -208,6 +208,7 @@ public class SetupFacetracking : EditorWindow
         public BW? BottomLeft { get; set; }
         public BW? Left { get; set; }
         public BW? TopLeft { get; set; }
+        public BW? Center { get; set; }
 
         // probably better with attributes, but I don't know Unity
         public Vector2 Vectorize(string property, float weight)
@@ -290,14 +291,13 @@ public class SetupFacetracking : EditorWindow
         // easier to just convert to a generic than handling an array
         var list = Parameters.parameters.ToList();
 
-        // add parameters at the top for higher priority
-        var idx = 0;
+        // add parameters
         foreach (var parameter in parameters)
         {
             // remove if exists
             list.RemoveAll(x => x.name == parameter);
 
-            list.Insert(idx++, new VRCExpressionParameters.Parameter()
+            list.Add(new VRCExpressionParameters.Parameter()
             {
                 name = parameter,
                 saved = false,
@@ -338,7 +338,8 @@ public class SetupFacetracking : EditorWindow
             // add toggle parameter, default to true
             if (!Controller.parameters.Any(x => x.name == ToggleName))
             {
-                Controller.AddParameter(new AnimatorControllerParameter() {
+                Controller.AddParameter(new AnimatorControllerParameter()
+                {
                     name = ToggleName,
                     type = AnimatorControllerParameterType.Bool,
                     defaultBool = true
@@ -421,7 +422,7 @@ public class SetupFacetracking : EditorWindow
 
             // add a new blendtree as default state
             var blendTree = CreateBlendTree(option);
-            if (blendTree == null) 
+            if (blendTree == null)
             {
                 return;
             }
@@ -492,14 +493,18 @@ public class SetupFacetracking : EditorWindow
         {
             // to simplify, just loop over the properties
             // there's probably a nicer way to do this
-            var properties = new string[] { "Top", "TopRight", "Right", "BottomRight", "Bottom", "BottomLeft", "Left", "TopLeft" };
+            var properties = new string[] { "Top", "TopRight", "Right", "BottomRight", "Bottom", "BottomLeft", "Left", "TopLeft", "Center" };
 
             // create a neutral animation clip zeroing all blendshapes
 
-            var neutralBlendshapes = properties
-                .Select(x => setup[x])
-                .Where(x => x != null)
-                .Select(x => new ClipSettings(x.Value.Blendshapes, ClipSettings.BlendshapeState.Off))
+            var positions = properties
+                .Select(x => new { Position = x, Setup = setup[x] })
+                .Where(x => x.Setup.HasValue)
+                .ToArray();
+
+            var neutralBlendshapes = positions
+                .Where(x => x.Setup.Value.Blendshapes != null)
+                .Select(x => new ClipSettings(x.Setup.Value.Blendshapes, ClipSettings.BlendshapeState.Off))
                 .ToArray();
 
             var neutralClip = CreateClip("neutral", neutralBlendshapes);
@@ -507,18 +512,32 @@ public class SetupFacetracking : EditorWindow
             // for a 1D blendtree take Left and Right properties to animate from -1 to 1
             if (blendTree.blendType == BlendTreeType.Simple1D)
             {
-                if (setup.Left != null)
+                var left = positions.Where(x => x.Position == "Left").SingleOrDefault();
+                var center = positions.Where(x => x.Position == "Center").SingleOrDefault();
+                var right = positions.Where(x => x.Position == "Right").SingleOrDefault();
+
+                var hasNeutral = positions.Any(x => x.Setup.Value.Blendshapes.Length == 0);
+
+                if (left != null)
                 {
-                    var leftClip = CreateClip("Left", new ClipSettings(setup.Left.Value.Blendshapes, ClipSettings.BlendshapeState.On));
-                    blendTree.AddChild(leftClip, -1.0f / setup.Left.Value.Weight);
+                    var clip = left.Setup.Value.Blendshapes.Length == 0 ? neutralClip : CreateClip("Left", new ClipSettings(left.Setup.Value.Blendshapes, ClipSettings.BlendshapeState.On));
+                    blendTree.AddChild(clip, -1.0f / left.Setup.Value.Weight);
                 }
 
-                blendTree.AddChild(neutralClip, 0.0f);
-
-                if (setup.Right != null)
+                if (center != null)
                 {
-                    var rightClip = CreateClip("Right", new ClipSettings(setup.Right.Value.Blendshapes, ClipSettings.BlendshapeState.On));
-                    blendTree.AddChild(rightClip, 1.0f / setup.Right.Value.Weight);
+                    var clip = center.Setup.Value.Blendshapes.Length == 0 ? neutralClip : CreateClip("Center", new ClipSettings(center.Setup.Value.Blendshapes, ClipSettings.BlendshapeState.On));
+                    blendTree.AddChild(clip, 0.0f);
+                }
+                else if(!hasNeutral)
+                { 
+                    blendTree.AddChild(neutralClip, 0.0f);
+                }
+
+                if (right != null)
+                {
+                    var clip = right.Setup.Value.Blendshapes.Length == 0 ? neutralClip : CreateClip("Right", new ClipSettings(right.Setup.Value.Blendshapes, ClipSettings.BlendshapeState.On));
+                    blendTree.AddChild(clip, 1.0f / right.Setup.Value.Weight);
                 }
             }
             else
@@ -526,13 +545,10 @@ public class SetupFacetracking : EditorWindow
                 blendTree.AddChild(neutralClip, Vector2.zero);
 
                 // create 2D blendtree
-                foreach (var prop in properties)
+                foreach (var position in positions.Where(x => x.Setup.Value.Blendshapes != null))
                 {
-                    if (setup[prop] != null)
-                    {
-                        var clip = CreateClip(prop, new ClipSettings(setup[prop].Value.Blendshapes, ClipSettings.BlendshapeState.On));
-                        blendTree.AddChild(clip, setup.Vectorize(prop, setup[prop].Value.Weight));
-                    }
+                    var clip = CreateClip(position.Position, new ClipSettings(position.Setup.Value.Blendshapes, ClipSettings.BlendshapeState.On));
+                    blendTree.AddChild(clip, setup.Vectorize(position.Position, position.Setup.Value.Weight));
                 }
             }
         }
