@@ -67,6 +67,83 @@ public class SetupFacetracking : EditorWindow
                     Right = new BW("CheekPuff_L")
                 }
             }
+        },
+        new TrackingSetup("Nardoragon") {
+            Options = new TrackingOption[] {
+                new TrackingOption("JawX") {
+                    Left = new BW("Jaw_Left"),
+                    Right = new BW("Jaw_Right")
+                },
+                new TrackingOption("MouthUpper") {
+                    Left = new BW("Mouth_Upper_Left"),
+                    Right = new BW("Mouth_Upper_Right")
+                },
+                new TrackingOption("MouthLower") {
+                    Left = new BW("Mouth_Lower_Left"),
+                    Right = new BW("Mouth_Lower_Right")
+                },
+                new TrackingOption("SmileSadRight") {
+                    Left = new BW("Mouth_Sad_Right"),
+                    Right = new BW("Mouth_Smile_Right")
+                },
+                new TrackingOption("SmileSadLeft") {
+                    Left = new BW("Mouth_Sad_Left"),
+                    Right = new BW("Mouth_Smile_Left")
+                },
+                new TrackingOption("TongueY") {
+                    Left = new BW("Tongue_Down"),
+                    Right = new BW("Tongue_Up")
+                },
+                new TrackingOption("TongueX") {
+                    Left = new BW("Tongue_Left"),
+                    Right = new BW("Tongue_Right")
+                },
+                new TrackingOption("TongueRoll") {
+                    Single = new BW("Tongue_Roll")
+                },
+                new TrackingOption("TongueSteps") {
+                    Left = new BW(1.0f),
+                    Center = new BW("Tongue_LongStep1"),
+                    Right = new BW("Tongue_LongStep2")
+                },
+                new TrackingOption("PuffSuckRight") {
+                    Left = new BW("Cheek_Suck"),
+                    Right = new BW("Cheek_Puff_Right")
+                },
+                new TrackingOption("PuffSuckLeft") {
+                    Left = new BW("Cheek_Suck"),
+                    Right = new BW("Cheek_Puff_Left")
+                },
+                new TrackingOption("JawOpenApe") {
+                    Left = new BW("Mouth_Ape_Shape"),
+                    Right = new BW("Jaw_Open")
+                },
+                new TrackingOption("MouthUpperUpRightUpperInside") {
+                    Left = new BW("Mouth_Upper_Inside"),
+                    Right = new BW("Mouth_Upper_UpRight")
+                },
+                new TrackingOption("MouthUpperUpLeftUpperInside") {
+                    Left = new BW("Mouth_Upper_Inside"),
+                    Right = new BW("Mouth_Upper_UpLeft")
+                },
+                new TrackingOption("MouthLowerDownRightLowerInside") {
+                    Left = new BW("Mouth_Lower_Inside"),
+                    Right = new BW("Mouth_Lower_DownRight")
+                },
+                new TrackingOption("MouthLowerDownLeftLowerInside") {
+                    Left = new BW("Mouth_Lower_Inside"),
+                    Right = new BW("Mouth_Lower_DownLeft")
+                },
+                new TrackingOption("MouthPout") {
+                    Single = new BW("Mouth_Pout")
+                },
+                new TrackingOption("MouthUpperOverturn") {
+                    Single = new BW("Mouth_Upper_Overturn")
+                },
+                new TrackingOption("MouthLowerOverturn") {
+                    Single = new BW("Mouth_Lower_Overturn")
+                }
+            }
         }
     };
 
