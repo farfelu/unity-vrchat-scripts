@@ -11,6 +11,15 @@ public class FixSingleKeyframeAnimations : MonoBehaviour
     [MenuItem("Tools/Fix single keyframe animations")]
     static void FixKeyframesClick()
     {
+        if (!EditorUtility.DisplayDialog(
+            "Fix single keyframe animations",
+            "This will add a second keyframe to all animations with only a single keyframe",
+            "Continue", "Cancel")
+        )
+        {
+            return;
+        }
+
         Undo.RecordObject(null, "Fix single keyframe animations");
         var undoID = Undo.GetCurrentGroup();
 
