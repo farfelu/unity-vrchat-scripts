@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using UnityEngine.Animations;
+using System.Linq;
 
 public class AddParameter : EditorWindow
 {
@@ -15,11 +16,23 @@ public class AddParameter : EditorWindow
     GameObject armature = null;
     GameObject clothes = null;
     bool allowHierarchyMismatch = false;
+    bool useParentConstraints = true;
+    string reparentPrefix = "";
 
     private void OnGUI()
     {
         armature = (GameObject)EditorGUILayout.ObjectField("Avatar Armature", armature, typeof(GameObject), true);
         clothes = (GameObject)EditorGUILayout.ObjectField("Clothes Armature", clothes, typeof(GameObject), true);
+        useParentConstraints = (bool)EditorGUILayout.Toggle("Use parent constraints instead of reparenting", useParentConstraints);
+        if (!useParentConstraints)
+        {
+            if (clothes != null && string.IsNullOrEmpty(reparentPrefix))
+            {
+                reparentPrefix = clothes.transform.parent.name;
+            }
+            reparentPrefix = EditorGUILayout.TextField("Optional Bone prefix", reparentPrefix);
+        }
+
         allowHierarchyMismatch = (bool)EditorGUILayout.Toggle("Allow hierarchy mismatch", allowHierarchyMismatch);
 
         GUI.enabled = armature != null && clothes != null;
@@ -30,7 +43,7 @@ public class AddParameter : EditorWindow
             Undo.SetCurrentGroupName("Apply Clothes");
             var undoID = Undo.GetCurrentGroup();
 
-            foreach (Transform clothBones in clothes.transform)
+            foreach (Transform clothBones in clothes.transform.Cast<Transform>().ToArray())
             {
                 ApplyBones(clothBones, armature.transform);
             }
@@ -49,11 +62,18 @@ public class AddParameter : EditorWindow
             if (boneName.Contains(armatureChild.name))
             {
                 matched = true;
-
-                CreateParentConstraint(clothes, armatureChild);
-                foreach (Transform clothesChild in clothes)
+                foreach (Transform clothesChild in clothes.transform.Cast<Transform>().ToArray())
                 {
                     ApplyBones(clothesChild, armatureChild);
+                }
+
+                if (useParentConstraints)
+                {
+                    CreateParentConstraint(clothes, armatureChild);
+                }
+                else
+                {
+                    Reparent(clothes, armatureChild);
                 }
                 break;
             }
@@ -85,5 +105,17 @@ public class AddParameter : EditorWindow
         });
 
         parentConstraint.constraintActive = true;
+    }
+
+    private void Reparent(Transform obj, Transform target)
+    {
+        Debug.Log("Reparenting " + obj.name + " -> " + target.name);
+        Undo.SetTransformParent(obj, target, "");
+
+        if (!string.IsNullOrEmpty(reparentPrefix))
+        {
+            Undo.RegisterCompleteObjectUndo(obj, "");
+            obj.name = reparentPrefix + "_" + obj.name;
+        }
     }
 }
