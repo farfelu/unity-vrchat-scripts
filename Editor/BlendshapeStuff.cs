@@ -43,8 +43,19 @@ public class BlendshapeStuff : MonoBehaviour
         GUIUtility.systemCopyBuffer = JsonHelper.ToJson(blendShapes.ToArray(), true);
     }
 
+    [MenuItem("Tools/Blendshapes/Paste JSON blendshapes (reset missing to 0)")]
+    static void PasteJsonBlendshapesAll()
+    {
+        PasteBlendshapes(true);
+    }
+
     [MenuItem("Tools/Blendshapes/Paste JSON blendshapes")]
-    static void PasteJsonBlendshapes()
+    static void PasteJsonBlendshapesWeighted()
+    {
+        PasteBlendshapes();
+    }
+
+    private static void PasteBlendshapes(bool reset = false)
     {
         if (Selection.gameObjects.Length != 1)
         {
@@ -76,12 +87,12 @@ public class BlendshapeStuff : MonoBehaviour
         Undo.RecordObject(null, "Paste JSON blendshapes");
         var undoID = Undo.GetCurrentGroup();
 
-        SetBlendShapes(obj.gameObject, data);
+        SetBlendShapes(obj.gameObject, data, reset);
 
         Undo.CollapseUndoOperations(undoID);
     }
 
-    static void SetBlendShapes(GameObject obj, IEnumerable<Blendshape> blendshapes)
+    static void SetBlendShapes(GameObject obj, IEnumerable<Blendshape> blendshapes, bool reset)
     {
         var skinnedMesh = obj.GetComponent<SkinnedMeshRenderer>();
         var mesh = skinnedMesh.sharedMesh;
@@ -91,6 +102,11 @@ public class BlendshapeStuff : MonoBehaviour
         foreach (var blendshape in existingBlendshapes)
         {
             var newBlendshape = blendshapes.SingleOrDefault(x => x.Name == blendshape.Name);
+
+            if (newBlendshape == null && !reset)
+            {
+                continue;
+            }
 
             var newWeight = newBlendshape?.Weight ?? 0.0f;
 
