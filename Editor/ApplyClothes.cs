@@ -35,7 +35,14 @@ public class AddParameter : EditorWindow
 
         allowHierarchyMismatch = (bool)EditorGUILayout.Toggle("Allow hierarchy mismatch", allowHierarchyMismatch);
 
-        GUI.enabled = armature != null && clothes != null;
+        var canReparent = useParentConstraints || clothes == null || (clothes.transform.parent == null || PrefabUtility.GetPrefabInstanceHandle(clothes.transform.parent) == null);
+
+        if (!useParentConstraints && !canReparent)
+        {
+            EditorGUILayout.HelpBox("The armature parent \"" + clothes.transform.parent.name + "\" must be unpacked before it can be reparented", MessageType.Error);
+        }
+
+        GUI.enabled = armature != null && clothes != null && canReparent;
 
         if (GUILayout.Button("Apply Clothes"))
         {
@@ -114,7 +121,7 @@ public class AddParameter : EditorWindow
 
         if (!string.IsNullOrEmpty(reparentPrefix))
         {
-            Undo.RegisterCompleteObjectUndo(obj, "");
+            Undo.RegisterCompleteObjectUndo(obj, "rename bone");
             obj.name = reparentPrefix + "_" + obj.name;
         }
     }
