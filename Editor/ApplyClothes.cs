@@ -116,6 +116,12 @@ public class AddParameter : EditorWindow
 
     private void Reparent(Transform obj, Transform target)
     {
+        var parentConstraint = obj.gameObject.GetComponent<ParentConstraint>();
+        if (parentConstraint != null)
+        {
+            Undo.DestroyObjectImmediate(parentConstraint);
+        }
+        
         Debug.Log("Reparenting " + obj.name + " -> " + target.name);
         Undo.SetTransformParent(obj, target, "");
 
