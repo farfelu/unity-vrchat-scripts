@@ -90,3 +90,7 @@ Will create the `TongueX` and `TongueY` parameter and create a 2D blendtree anim
   
 The properties are based on the position on a 2D blendtree  
 ![](.readme/img05.png)
+
+## Batch upload avatars (SDK 3.3.0 or newer)
+Uploads all selected avatars in one go.  
+They must have been already uploaded at least once and have a valid blueprint id attached.
