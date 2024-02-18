@@ -73,6 +73,8 @@ public class AvatarBatchUpload : MonoBehaviour
         // build has 6 stages
         var progressStage = 0;
 
+        string errorMessage = null;
+
         EventHandler<string> buildProgress = (s, stage) =>
         {
             var progressStart = progressSection * (progressAvatar - 1.0f);
@@ -83,7 +85,7 @@ public class AvatarBatchUpload : MonoBehaviour
         };
 
         // upload sends its own progress float
-        EventHandler<(string, float)> uploadProgres = (s, stage) =>
+        EventHandler<(string, float)> uploadProgress = (s, stage) =>
         {
             var progressPart = (progressSection / 2.0f);
             var progressStart = (progressSection * (progressAvatar - 1.0f)) + progressPart;
@@ -91,11 +93,17 @@ public class AvatarBatchUpload : MonoBehaviour
             progressText = stage.Item1;
         };
 
+        // upload sends its own progress float
+        EventHandler<string> sdkError = (s, message) =>
+        {
+            errorMessage = message;
+        };
+
         // hook sdk
         builder.OnSdkBuildProgress += buildProgress;
-        builder.OnSdkUploadProgress += uploadProgres;
-
-
+        builder.OnSdkUploadProgress += uploadProgress;
+        builder.OnSdkBuildError += sdkError;
+        builder.OnSdkUploadError += sdkError;
 
         // remember which objects where enabled
         var enabledObjects = avatarObjects.Where(x => x.activeSelf).ToList();
@@ -105,6 +113,9 @@ public class AvatarBatchUpload : MonoBehaviour
         {
             obj.SetActive(false);
         }
+
+        // force repaint
+        await Task.Delay(50);
 
         // loop over them and upload one by one
         foreach (var avatar in avatarObjects)
@@ -116,6 +127,9 @@ public class AvatarBatchUpload : MonoBehaviour
             progressText = "Building...";
 
             avatar.SetActive(true);
+            Selection.objects = new UnityEngine.Object[] { avatar };
+
+            await Task.Delay(50);
 
             try
             {
@@ -133,22 +147,31 @@ public class AvatarBatchUpload : MonoBehaviour
                     EditorUtility.DisplayProgressBar("Batch uploading avatars...", string.Format("{0}/{1} - {2} - {3}", progressAvatar, avatarObjects.Length, progressAvatarName, progressText), progress);
                     await Task.Delay(100);
                 }
+
+                if (errorMessage != null)
+                {
+                    throw new Exception(errorMessage);
+                }
             }
             catch (Exception e)
             {
-                Debug.LogError(e.Message);
+                Debug.LogError("BATCH UPLOAD: " + e.Message);
                 EditorUtility.DisplayDialog("Error uploading avatar", e.Message + "\n\nBatch upload aborted", "Ok");
                 break;
             }
 
             avatar.SetActive(false);
+
+            await Task.Delay(50);
         }
 
         EditorUtility.ClearProgressBar();
 
         //unhook sdk
         builder.OnSdkBuildProgress -= buildProgress;
-        builder.OnSdkUploadProgress -= uploadProgres;
+        builder.OnSdkUploadProgress -= uploadProgress;
+        builder.OnSdkBuildError -= sdkError;
+        builder.OnSdkUploadError -= sdkError;
 
 
         // set them back to their previous state
@@ -156,5 +179,7 @@ public class AvatarBatchUpload : MonoBehaviour
         {
             obj.SetActive(enabledObjects.Contains(obj));
         }
+
+        Selection.objects = objects;
     }
 }
